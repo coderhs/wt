@@ -53,6 +53,19 @@ A simple git worktree helper that makes managing git worktrees effortless.
 
 ## Usage
 
+### List all worktrees
+
+```bash
+wt ls
+```
+
+Shows all worktrees in the repository with their paths, branches, and commit info.
+
+**Example:**
+```bash
+wt ls
+```
+
 ### Switch to or create a worktree
 
 ```bash
@@ -73,19 +86,24 @@ wt feature/new-feature
 ### Remove a worktree
 
 ```bash
-wt remove <branch-name>
+wt remove                        # Remove current worktree (with confirmation)
+wt remove <branch-name>          # Remove worktree for specific branch
+wt remove --force                # Force remove current worktree
 wt remove --force <branch-name>  # Force removal even with uncommitted changes
 wt remove -f <branch-name>       # Short form
 ```
 
 This command will:
-- Find the worktree for the specified branch
+- Remove the current worktree if no branch is specified (prompts for confirmation)
+- Find and remove the worktree for the specified branch
 - Automatically navigate to another worktree if you're currently in the one being removed
-- Remove the worktree directory
+- Prevent removal of the main worktree when using without a branch name
 
-**Example:**
+**Examples:**
 ```bash
-wt remove feature/old-feature
+wt remove                      # Remove the current worktree you're in
+wt remove feature/old-feature  # Remove specific branch's worktree
+wt remove --force              # Force remove current worktree
 ```
 
 ## Configuration

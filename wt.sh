@@ -2,12 +2,22 @@ wt() {
   if [ $# -lt 1 ]; then
     echo "Usage:"
     echo "  wt <branch>"
-    echo "  wt remove [--force|-f] <branch>"
+    echo "  wt ls"
+    echo "  wt remove [--force|-f] [<branch>]"
     return 1
   fi
 
   cmd="$1"
   shift
+
+  # ----------------------------------------------
+  # LIST COMMAND
+  # ----------------------------------------------
+
+  if [ "$cmd" = "ls" ]; then
+    git worktree list
+    return
+  fi
 
   # Helper: resolve the worktree path for a branch
   _worktree_for_branch() {
@@ -43,16 +53,41 @@ wt() {
     fi
     branch="$1"
 
+    # If no branch specified, remove current worktree
     if [ -z "$branch" ]; then
-      echo "Usage: wt remove [--force|-f] <branch>"
-      return 1
-    fi
+      repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "Not a git repo"; return 1; }
 
-    wtpath="$(_worktree_for_branch "$branch")"
+      # Check if we're in the main worktree
+      main_wt=$(git worktree list --porcelain | awk 'NR==1 && /^worktree /{print $2}')
 
-    if [ -z "$wtpath" ]; then
-      echo "No worktree found for '$branch'"
-      return 1
+      if [ "$repo_root" = "$main_wt" ]; then
+        echo "You are in the main worktree. Please specify a branch to remove."
+        echo "Usage: wt remove [--force|-f] <branch>"
+        return 1
+      fi
+
+      wtpath="$repo_root"
+
+      # Get the branch name for this worktree
+      branch=$(git worktree list --porcelain | awk -v want="$wtpath" '
+        /^worktree / { path=$2 }
+        /^branch /   { if (path == want) { sub(/^refs\/heads\//, "", $2); print $2; exit } }
+      ')
+
+      echo "Current worktree: $wtpath (branch: $branch)"
+      read -r "answer?Remove this worktree? [y/N] "
+
+      case "$answer" in
+        y|Y|yes|YES) ;;
+        *) echo "Aborted."; return 1 ;;
+      esac
+    else
+      wtpath="$(_worktree_for_branch "$branch")"
+
+      if [ -z "$wtpath" ]; then
+        echo "No worktree found for '$branch'"
+        return 1
+      fi
     fi
 
     curdir="$(pwd)"
